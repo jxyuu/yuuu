@@ -330,6 +330,45 @@ const { DatabaseSync } = require('node:sqlite');
 
 ---
 
+## 桌面版（Electron）
+
+打包成双击就能用的桌面应用。
+
+```bash
+npm run desktop    # 开发模式：直接以桌面应用启动（需要 Electron 已安装）
+npm run package    # 打包：生成 release/Life Assistant-win32-x64/
+```
+
+打包产物在 `release/Life Assistant-win32-x64/`，双击里面的 **`Life Assistant.exe`** 即可。
+`release/` 已加入 `.gitignore`，不会进仓库。
+
+### 打包后数据存哪
+
+桌面版**不会**把数据库写在安装目录（打包成 asar 后那里是只读的），而是写在系统用户目录：
+
+```text
+%APPDATA%\yuuu-life-assistant\yuuu.db
+```
+
+想验证打包产物是否真的能跑，可以用无界面自检模式：
+
+```bash
+"release\Life Assistant-win32-x64\Life Assistant.exe" --smoke
+```
+
+它会：启动内置后端 → 请求一次 `/api/health` → 打印结果 → 退出。
+配合 `YUUU_SMOKE_OUT=<文件路径>` 还能把结果写成 JSON 文件。
+
+### 相关环境变量
+
+| 变量 | 说明 |
+| --- | --- |
+| `YUUU_PORT` | 桌面版内部端口，默认 `4317` |
+| `YUUU_USER_DATA` | 覆盖用户数据目录（测试用） |
+| `YUUU_SMOKE_OUT` | `--smoke` 模式下把结果写入指定文件 |
+
+---
+
 ## 下一步
 
 - [ ] **Electron 打包**：主进程 `desktop/main.js` 已写好并能启动，

@@ -2,13 +2,15 @@
   "name": "yuuu-life-assistant",
   "version": "0.1.0",
   "private": true,
-  "description": "个人生活助手：Todo List、记账、日程、日记",
+  "description": "个人生活助手：待办、记账、日程、日记、笔记、考试、饮食、运动",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
+    "desktop": "electron desktop/main.js",
+    "package": "electron-packager . \"Life Assistant\" --platform=win32 --arch=x64 --out=release --overwrite --asar --prune --ignore=client --ignore=tools --ignore=docs --ignore=data --ignore=release --ignore=shots --ignore=desktop-smoke.json",
     "test": "node tools/smoke-test.js"
   },
   "engines": {

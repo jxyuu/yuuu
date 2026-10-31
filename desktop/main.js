@@ -21,6 +21,11 @@ const HOST = '127.0.0.1';
 const isSmoke = process.argv.includes('--smoke');
 
 // ---------- 数据目录：放到系统用户目录 ----------
+// 打包后 asar 是只读的，所以数据库不能放在应用目录里。
+// YUUU_USER_DATA 可用于测试或临时指定。
+if (process.env.YUUU_USER_DATA) {
+  app.setPath('userData', process.env.YUUU_USER_DATA);
+}
 const userDataDir = app.getPath('userData');
 fs.mkdirSync(userDataDir, { recursive: true });
 process.env.YUUU_DB = process.env.YUUU_DB || path.join(userDataDir, 'yuuu.db');
@@ -102,6 +107,15 @@ if (!gotLock) {
       const health = await waitForServer();
 
       if (isSmoke) {
+        // 打包后的 GUI 程序看不到 stdout，所以结果同时写文件
+        const payload = { ok: true, health, db: process.env.YUUU_DB, electron: process.versions.electron };
+        if (process.env.YUUU_SMOKE_OUT) {
+          try {
+            fs.writeFileSync(process.env.YUUU_SMOKE_OUT, JSON.stringify(payload, null, 2), 'utf8');
+          } catch (e) {
+            console.error('写自检结果失败：', e.message);
+          }
+        }
         console.log('SMOKE_OK ' + JSON.stringify(health));
         app.exit(0);
         return;

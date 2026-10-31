@@ -4,3 +4,8 @@ data/
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# Electron 打包产物与临时数据
+release/
+.desktop-userdata/
+desktop-smoke.json
