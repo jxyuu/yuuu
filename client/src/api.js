@@ -174,6 +174,7 @@ export const api = {
       return request('/meals' + (s ? '?' + s : ''));
     },
     summary: () => request('/meals/summary'),
+    lookup: (q, limit = 8) => request(`/meals/lookup?q=${encodeURIComponent(q)}&limit=${limit}`),
     create: (data) => request('/meals', { method: 'POST', body: data }),
     remove: (id) => request(`/meals/${id}`, { method: 'DELETE' }),
   },

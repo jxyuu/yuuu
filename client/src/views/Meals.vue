@@ -14,6 +14,56 @@ const filterType = ref('');
 const mealTypes = ['早餐', '午餐', '晚餐', '加餐'];
 const form = ref({ name: '', mealType: '午餐', calories: '', eatenAt: today() });
 
+// ---------- 食物热量自动补全 ----------
+const suggestions = ref([]);
+const showSuggest = ref(false);
+const lookupState = ref('idle'); // idle | searching | none
+const estimate = ref(null);
+let lookupTimer = null;
+
+function onNameInput() {
+  const q = form.value.name.trim();
+  estimate.value = null;
+  if (lookupTimer) clearTimeout(lookupTimer);
+
+  if (q.length < 2) {
+    suggestions.value = [];
+    showSuggest.value = false;
+    lookupState.value = 'idle';
+    return;
+  }
+
+  lookupState.value = 'searching';
+  lookupTimer = setTimeout(async () => {
+    try {
+      const res = await api.meals.lookup(q);
+      suggestions.value = res.matches || [];
+      showSuggest.value = suggestions.value.length > 0;
+      lookupState.value = res.found ? 'idle' : 'none';
+    } catch {
+      suggestions.value = [];
+      showSuggest.value = false;
+      lookupState.value = 'idle';
+    }
+  }, 220);
+}
+
+function pickSuggestion(s) {
+  form.value.name = s.name;
+  form.value.calories = String(s.kcal);
+  estimate.value = s;
+  suggestions.value = [];
+  showSuggest.value = false;
+  lookupState.value = 'idle';
+}
+
+// 点击建议项时不要因为 input 失焦而先关闭列表
+function hideSuggestSoon() {
+  setTimeout(() => {
+    showSuggest.value = false;
+  }, 160);
+}
+
 async function load() {
   loading.value = true;
   try {
@@ -43,6 +93,10 @@ async function add() {
     });
     form.value.name = '';
     form.value.calories = '';
+    estimate.value = null;
+    lookupState.value = 'idle';
+    suggestions.value = [];
+    showSuggest.value = false;
     await load();
     emit('changed');
   } catch (e) {
@@ -118,9 +172,31 @@ onMounted(load);
     <div class="card">
       <div class="card-title">记一顿</div>
       <div class="form-row">
-        <div class="field" style="flex: 1">
+        <div class="field" style="flex: 1; position: relative">
           <label>吃了什么</label>
-          <input v-model="form.name" class="input" placeholder="例如：番茄牛腩饭" @keyup.enter="add" />
+          <input
+            v-model="form.name"
+            class="input"
+            placeholder="输入名称，例如：番茄牛腩饭"
+            autocomplete="off"
+            @input="onNameInput"
+            @focus="onNameInput"
+            @blur="hideSuggestSoon"
+            @keyup.enter="add"
+          />
+          <div v-if="showSuggest" class="suggest">
+            <button
+              v-for="s in suggestions"
+              :key="s.name"
+              type="button"
+              class="suggest-item"
+              @mousedown.prevent="pickSuggestion(s)"
+            >
+              <span class="suggest-name">{{ s.name }}</span>
+              <span class="suggest-kcal">{{ s.kcal }} kcal</span>
+              <span class="suggest-unit">1 {{ s.unit }} ≈ {{ s.grams }} g · 每 100 g 约 {{ s.kcalPer100g }} kcal</span>
+            </button>
+          </div>
         </div>
         <div class="field" style="width: 110px">
           <label>餐次</label>
@@ -137,6 +213,17 @@ onMounted(load);
           <input v-model="form.eatenAt" type="date" class="input" />
         </div>
         <button class="btn primary" :disabled="saving || !form.name.trim()" @click="add">记录</button>
+      </div>
+
+      <div v-if="estimate" class="hint" style="margin-top: 10px">
+        ✓ 已按参考值填入 <strong>{{ estimate.kcal }} kcal</strong>（1 {{ estimate.unit }} ≈ {{ estimate.grams }} g）。
+        分量或做法不同可以自己改上面的数字。
+      </div>
+      <div v-else-if="lookupState === 'none'" class="hint" style="margin-top: 10px">
+        食物表里没有「{{ form.name }}」，热量请手动填写（常见食物约 120 种）。
+      </div>
+      <div v-else class="hint" style="margin-top: 10px">
+        输入菜名会自动带出参考热量；数值来自常见食物成分表的近似值，仅作起点。
       </div>
     </div>
 

@@ -17,6 +17,94 @@ const router = express.Router();
 
 const MEAL_TYPES = ['早餐', '午餐', '晚餐', '加餐'];
 
+// ---------------------------------------------------------------
+// 食物热量参考表
+// 数值是「一份（unit × grams）」的近似热量，来源为常见食物成分表，
+// 实际会因做法、油量、分量而差很多，只作为填写时的参考起点。
+// ---------------------------------------------------------------
+const FOODS = require('../data/foods.json');
+
+/** 归一化：去空格、标点，转小写，便于模糊匹配 */
+function normalize(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[\s·、,，。.．\-_/\\()（）【】\[\]]/g, '');
+}
+
+/** 中文没有空格，用二元组重叠度做相似度 */
+function bigrams(s) {
+  const set = new Set();
+  for (let i = 0; i < s.length - 1; i += 1) set.add(s.slice(i, i + 2));
+  return set;
+}
+
+function scoreFood(query, food) {
+  const q = normalize(query);
+  if (!q) return 0;
+
+  let best = 0;
+  for (const raw of [food.name, ...(food.aliases || [])]) {
+    const n = normalize(raw);
+    if (!n) continue;
+
+    if (n === q) {
+      best = Math.max(best, 100);
+    } else if (n.startsWith(q) || n.includes(q)) {
+      // 命中的关键词越长越可信
+      best = Math.max(best, 75 + Math.min(20, q.length));
+    } else if (q.includes(n)) {
+      best = Math.max(best, 70 + Math.min(20, n.length));
+    } else {
+      const a = bigrams(q);
+      const b = bigrams(n);
+      if (a.size && b.size) {
+        let hit = 0;
+        for (const g of a) if (b.has(g)) hit += 1;
+        const overlap = hit / Math.min(a.size, b.size);
+        if (overlap >= 0.5) best = Math.max(best, Math.round(40 + overlap * 35));
+      }
+    }
+  }
+  return best;
+}
+
+function shapeFood(food, match) {
+  return {
+    name: food.name,
+    unit: food.unit,
+    grams: food.grams,
+    kcal: food.kcal,
+    // 每 100 g 的参考值，方便手动换算分量
+    kcalPer100g: Math.round((food.kcal / food.grams) * 100),
+    match,
+  };
+}
+
+// 查热量（自动补全用）。必须放在 /:id 之前（这里没有 GET /:id，但保持好习惯）
+router.get('/lookup', (req, res) => {
+  const q = requireString(req.query.q, 'q', { max: 50, allowEmpty: true });
+  if (!q) return res.json({ query: '', matches: [] });
+
+  const limit = req.query.limit === undefined ? 8 : requireInt(req.query.limit, 'limit', { min: 1, max: 30 });
+
+  const scored = FOODS.map((f) => ({ food: f, match: scoreFood(q, f) }))
+    .filter((x) => x.match >= 50)
+    .sort((a, b) => b.match - a.match || a.food.name.length - b.food.name.length)
+    .slice(0, limit);
+
+  res.json({
+    query: q,
+    matches: scored.map((x) => shapeFood(x.food, x.match)),
+    // 没有匹配时前端可以提示「未收录，请手动填写」
+    found: scored.length > 0,
+  });
+});
+
+// 列出全部参考食物（可选，方便以后做「食物库」页面）
+router.get('/foods', (req, res) => {
+  res.json({ count: FOODS.length, items: FOODS.map((f) => shapeFood(f, 100)) });
+});
+
 function shape(row) {
   return {
     id: row.id,

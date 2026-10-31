@@ -305,6 +305,33 @@ async function runTests() {
   checkEq('按餐次筛选', (await req('GET', '/api/meals?type=早餐')).body.count, 1);
   checkEq('非法餐次被拒绝', (await req('POST', '/api/meals', { name: 'x', mealType: '夜宵' })).status, 400);
   checkEq('缺名称被拒绝', (await req('POST', '/api/meals', { calories: 100 })).status, 400);
+
+  // 食物热量查询（自动补全）
+  const q1 = await req('GET', `/api/meals/lookup?q=${encodeURIComponent('番茄牛腩饭')}`);
+  checkEq('热量查询状态码', q1.status, 200);
+  checkEq('精确匹配到菜名', q1.body.matches[0].name, '番茄牛腩饭');
+  checkEq('精确匹配热量', q1.body.matches[0].kcal, 650);
+  checkEq('返回每 100 g 参考值', q1.body.matches[0].kcalPer100g, 144);
+
+  const q2 = await req('GET', `/api/meals/lookup?q=${encodeURIComponent('牛腩饭')}`);
+  checkEq('别名/包含匹配命中', q2.body.matches[0].name, '番茄牛腩饭');
+
+  const q3 = await req('GET', `/api/meals/lookup?q=${encodeURIComponent('米饭')}`);
+  checkEq('主食匹配', q3.body.matches[0].name, '米饭');
+  checkEq('主食热量', q3.body.matches[0].kcal, 232);
+
+  const q4 = await req('GET', `/api/meals/lookup?q=${encodeURIComponent('可乐')}`);
+  checkEq('饮料能匹配到多个', q4.body.matches.length >= 2, true);
+
+  const q5 = await req('GET', `/api/meals/lookup?q=${encodeURIComponent('火星岩石')}`);
+  checkEq('查不到时 found 为 false', q5.body.found, false);
+  checkEq('查不到时返回空数组', q5.body.matches.length, 0);
+
+  checkEq('空查询返回空结果', (await req('GET', '/api/meals/lookup?q=')).body.matches.length, 0);
+
+  const foods = await req('GET', '/api/meals/foods');
+  checkEq('食物库条目数 >= 100', foods.body.count >= 100, true);
+
   checkEq('删除饮食记录', (await req('DELETE', `/api/meals/${m1.body.id}`)).status, 204);
 
   // ---------- 运动 ----------
