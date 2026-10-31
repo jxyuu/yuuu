@@ -1,60 +1,13 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>个人生活助手 · 后端已启动</title>
-  <style>
-    :root { --ink: #23202f; --muted: #6d6880; --line: rgba(35,32,47,.12); --accent: #4b7bec; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 48px 24px; color: var(--ink);
-      font: 16px/1.7 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-      background: linear-gradient(135deg, #f7f8fc 0%, #eef1fa 100%);
-    }
-    main { max-width: 760px; margin: 0 auto; }
-    h1 { margin: 0 0 8px; font-size: 1.9rem; }
-    p.lead { margin: 0 0 32px; color: var(--muted); }
-    .card { padding: 20px 24px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
-    .card h2 { margin: 0 0 12px; font-size: 1.05rem; }
-    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-    th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 600; }
-    code { padding: 1px 5px; border-radius: 4px; background: #f1f2f7; font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
-    .method { font-weight: 700; font-size: .8rem; }
-    .get { color: #218c5a; } .post { color: #1f6feb; }
-    .patch { color: #9a6700; } .delete { color: #b42318; }
-    .note { margin-top: 28px; color: var(--muted); font-size: .88rem; }
-  </style>
-</head>
-<body>
-<main>
-  <h1>个人生活助手</h1>
-  <p class="lead">后端已启动。这是接口占位页，前端界面（Vue + Electron）稍后接入。</p>
-
-  <div class="card">
-    <h2>接口一览</h2>
-    <table>
-      <tr><th style="width:70px">方法</th><th>路径</th><th>说明</th></tr>
-      <tr><td class="method get">GET</td><td><code>/api/health</code></td><td>健康检查</td></tr>
-      <tr><td class="method get">GET</td><td><code>/api/summary</code></td><td>首页汇总</td></tr>
-      <tr><td class="method get post">GET/POST</td><td><code>/api/todos</code></td><td>Todo 列表 / 新建</td></tr>
-      <tr><td class="method patch delete">PATCH/DELETE</td><td><code>/api/todos/:id</code></td><td>更新 / 删除 Todo</td></tr>
-      <tr><td class="method get post">GET/POST</td><td><code>/api/expenses</code></td><td>记账列表 / 记一笔</td></tr>
-      <tr><td class="method get">GET</td><td><code>/api/expenses/summary</code></td><td>记账汇总</td></tr>
-      <tr><td class="method get post">GET/POST</td><td><code>/api/events</code></td><td>日程列表 / 新建</td></tr>
-      <tr><td class="method patch delete">PATCH/DELETE</td><td><code>/api/events/:id</code></td><td>更新 / 删除日程</td></tr>
-      <tr><td class="method get post">GET/POST</td><td><code>/api/journal</code></td><td>日记列表 / 写一篇</td></tr>
-      <tr><td class="method patch delete">PATCH/DELETE</td><td><code>/api/journal/:id</code></td><td>更新 / 删除日记</td></tr>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>试一试</h2>
-    <p style="margin:0"><code>curl http://127.0.0.1:3000/api/summary</code></p>
-  </div>
-
-  <p class="note">数据保存在本地 <code>data/yuuu.db</code>（SQLite），不会上传到任何服务器。</p>
-</main>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>个人生活助手</title>
+    <script type="module" crossorigin src="/assets/index-Dv53Aaet.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B6M0Ec5s.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
 </html>
