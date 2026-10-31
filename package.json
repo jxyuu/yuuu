@@ -11,7 +11,8 @@
     "build": "npm --prefix client run build",
     "desktop": "electron desktop/main.js",
     "package": "electron-packager . \"Life Assistant\" --platform=win32 --arch=x64 --out=release --overwrite --asar --prune --ignore=client --ignore=tools --ignore=docs --ignore=data --ignore=release --ignore=shots --ignore=desktop-smoke.json",
-    "test": "node tools/smoke-test.js"
+    "test": "node tools/smoke-test.js",
+    "demo": "node tools/seed-examples.cjs"
   },
   "engines": {
     "node": ">=22"

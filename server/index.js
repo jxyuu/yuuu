@@ -190,6 +190,29 @@ const server = app.listen(PORT, HOST, () => {
   console.log('    GET/POST        /api/meals        GET /api/meals/summary   DELETE /api/meals/:id');
   console.log('    GET/POST        /api/workouts     GET /api/workouts/summary DELETE /api/workouts/:id');
   console.log('');
+
+  // 桌面启动器会设置 OPEN_BROWSER=1，启动后自动打开默认浏览器
+  if (process.env.OPEN_BROWSER === '1') {
+    const url = `http://${HOST}:${PORT}`;
+    setTimeout(() => {
+      // 注意：这里用 spawn + stdio:'ignore'，不用 exec。
+      // exec 会建立管道，在受限环境里会抛 EPERM；而且一旦抛错，
+      // 未捕获的异常会把整个服务带崩——打开浏览器失败不该影响服务。
+      try {
+        const { spawn } = require('node:child_process');
+        const isWin = process.platform === 'win32';
+        const cmd = isWin ? 'cmd' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+        const args = isWin ? ['/c', 'start', '', url] : [url];
+        const child = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true });
+        child.on('error', (err) => {
+          console.log(`  （自动打开浏览器失败：${err.message}，请手动打开 ${url}）`);
+        });
+        child.unref();
+      } catch (err) {
+        console.log(`  （自动打开浏览器失败：${err.message}，请手动打开 ${url}）`);
+      }
+    }, 400);
+  }
 });
 
 // 优雅退出，确保 SQLite 写入落盘
