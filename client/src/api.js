@@ -135,6 +135,62 @@ export const api = {
     update: (id, data) => request(`/journal/${id}`, { method: 'PATCH', body: data }),
     remove: (id) => request(`/journal/${id}`, { method: 'DELETE' }),
   },
+  notes: {
+    list: (params = {}) => {
+      const q = new URLSearchParams();
+      if (params.q) q.set('q', params.q);
+      if (params.tag) q.set('tag', params.tag);
+      if (params.pinned) q.set('pinned', '1');
+      const s = q.toString();
+      return request('/notes' + (s ? '?' + s : ''));
+    },
+    create: (data) => request('/notes', { method: 'POST', body: data }),
+    update: (id, data) => request(`/notes/${id}`, { method: 'PATCH', body: data }),
+    remove: (id) => request(`/notes/${id}`, { method: 'DELETE' }),
+  },
+
+  exams: {
+    list: (params = {}) => {
+      const q = new URLSearchParams();
+      if (params.upcoming) q.set('upcoming', '1');
+      if (params.status) q.set('status', params.status);
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      const s = q.toString();
+      return request('/exams' + (s ? '?' + s : ''));
+    },
+    create: (data) => request('/exams', { method: 'POST', body: data }),
+    update: (id, data) => request(`/exams/${id}`, { method: 'PATCH', body: data }),
+    remove: (id) => request(`/exams/${id}`, { method: 'DELETE' }),
+  },
+
+  meals: {
+    list: (params = {}) => {
+      const q = new URLSearchParams();
+      if (params.type) q.set('type', params.type);
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      const s = q.toString();
+      return request('/meals' + (s ? '?' + s : ''));
+    },
+    summary: () => request('/meals/summary'),
+    create: (data) => request('/meals', { method: 'POST', body: data }),
+    remove: (id) => request(`/meals/${id}`, { method: 'DELETE' }),
+  },
+
+  workouts: {
+    list: (params = {}) => {
+      const q = new URLSearchParams();
+      if (params.kind) q.set('kind', params.kind);
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      const s = q.toString();
+      return request('/workouts' + (s ? '?' + s : ''));
+    },
+    summary: () => request('/workouts/summary'),
+    create: (data) => request('/workouts', { method: 'POST', body: data }),
+    remove: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
+  },
 };
 
 export { ApiError };

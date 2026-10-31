@@ -83,6 +83,31 @@ onMounted(load);
       </div>
     </div>
 
+    <div class="stats" style="margin-bottom: 16px">
+      <div class="stat">
+        <div class="stat-label">笔记</div>
+        <div class="stat-value">{{ props.summary?.notes?.total ?? 0 }}</div>
+        <div class="stat-sub">篇</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">今日摄入</div>
+        <div class="stat-value">{{ props.summary?.meals?.todayCalories ?? 0 }}</div>
+        <div class="stat-sub">kcal · {{ props.summary?.meals?.todayCount ?? 0 }} 餐</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">本周运动</div>
+        <div class="stat-value">{{ props.summary?.workouts?.weekMinutes ?? 0 }}</div>
+        <div class="stat-sub">分钟 · {{ props.summary?.workouts?.weekCount ?? 0 }} 次</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">下一场考试</div>
+        <div class="stat-value">
+          {{ props.summary?.exams?.next ? props.summary.exams.next.daysLeft + ' 天' : '—' }}
+        </div>
+        <div class="stat-sub">{{ props.summary?.exams?.next?.name || '暂无安排' }}</div>
+      </div>
+    </div>
+
     <div class="split">
       <div class="card">
         <div class="card-title">接下来要做</div>

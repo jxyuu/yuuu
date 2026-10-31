@@ -229,6 +229,103 @@ async function runTests() {
   checkEq('更新日记内容', (await req('PATCH', `/api/journal/${jId}`, { content: '改过的内容' })).body.content, '改过的内容');
   checkEq('删除日记', (await req('DELETE', `/api/journal/${jId}`)).status, 204);
 
+  // ---------- 笔记 ----------
+  console.log('\n[笔记]');
+  const n1 = await req('POST', '/api/notes', { title: '读书摘录', content: '好的设计是尽可能少的设计。', tags: '读书,设计' });
+  checkEq('新建笔记状态码', n1.status, 201);
+  checkEq('标签解析成数组', n1.body.tags, ['读书', '设计']);
+  const n2 = await req('POST', '/api/notes', { title: '临时想法', content: '给博客加一个书单页。' });
+  checkEq('默认不置顶', n2.body.pinned, false);
+
+  checkEq('笔记列表数量', (await req('GET', '/api/notes')).body.count, 2);
+  checkEq('笔记关键词搜索', (await req('GET', '/api/notes?q=设计')).body.count, 1);
+  checkEq('按标签筛选', (await req('GET', '/api/notes?tag=读书')).body.count, 1);
+
+  const pinned = await req('PATCH', `/api/notes/${n1.body.id}`, { pinned: true });
+  checkEq('置顶成功', pinned.body.pinned, true);
+  checkEq('置顶排在最前', (await req('GET', '/api/notes')).body.items[0].title, '读书摘录');
+
+  checkEq('删除笔记', (await req('DELETE', `/api/notes/${n2.body.id}`)).status, 204);
+  checkEq('删除后剩 1 篇', (await req('GET', '/api/notes')).body.count, 1);
+  checkEq('空标题被拒绝', (await req('POST', '/api/notes', { title: '' })).status, 400);
+
+  // ---------- 考试 ----------
+  console.log('\n[考试]');
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const dstr = (offsetDays) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  };
+  const todayStr = dstr(0);
+
+  const ex1 = await req('POST', '/api/exams', {
+    name: '中国历史导论 期末',
+    subject: '历史',
+    examAt: dstr(5) + 'T09:00:00+08:00',
+    location: 'B203',
+    seat: '17',
+  });
+  checkEq('新建考试状态码', ex1.status, 201);
+  checkEq('考试名称', ex1.body.name, '中国历史导论 期末');
+  checkEq('剩余天数计算', ex1.body.daysLeft, 5);
+  checkEq('默认待考', ex1.body.status, 'planned');
+
+  const ex2 = await req('POST', '/api/exams', { name: '现代汉语 小测', examAt: dstr(-3) });
+  checkEq('过去的考试 daysLeft 为负', ex2.body.daysLeft, -3);
+
+  checkEq('全部考试 2 场', (await req('GET', '/api/exams')).body.count, 2);
+  checkEq('待考筛选只含未来', (await req('GET', '/api/exams?upcoming=1')).body.count, 1);
+
+  const graded = await req('PATCH', `/api/exams/${ex2.body.id}`, { status: 'done', score: 88 });
+  checkEq('标记已考', graded.body.status, 'done');
+  checkEq('成绩保存', graded.body.score, 88);
+  checkEq('按已考筛选', (await req('GET', '/api/exams?status=done')).body.count, 1);
+  checkEq('非法状态被拒绝', (await req('PATCH', `/api/exams/${ex2.body.id}`, { status: 'nope' })).status, 400);
+  checkEq('缺 examAt 被拒绝', (await req('POST', '/api/exams', { name: 'x' })).status, 400);
+
+  checkEq('删除考试', (await req('DELETE', `/api/exams/${ex2.body.id}`)).status, 204);
+
+  // ---------- 饮食 ----------
+  console.log('\n[饮食]');
+  const m1 = await req('POST', '/api/meals', { name: '番茄牛腩饭', mealType: '午餐', calories: 620, eatenAt: todayStr });
+  checkEq('记一顿状态码', m1.status, 201);
+  checkEq('餐次', m1.body.mealType, '午餐');
+  checkEq('热量', m1.body.calories, 620);
+
+  await req('POST', '/api/meals', { name: '豆浆油条', mealType: '早餐', calories: 380, eatenAt: todayStr });
+  await req('POST', '/api/meals', { name: '苹果', mealType: '加餐', calories: 90, eatenAt: dstr(-1) });
+
+  const mealSum = await req('GET', '/api/meals/summary');
+  checkEq('今日热量合计', mealSum.body.today.calories, 1000);
+  checkEq('今日餐数', mealSum.body.today.count, 2);
+  checkEq('按餐次分布含 4 项', mealSum.body.byType.length, 4);
+  checkEq('午餐热量', mealSum.body.byType.find((t) => t.mealType === '午餐').calories, 620);
+
+  checkEq('按餐次筛选', (await req('GET', '/api/meals?type=早餐')).body.count, 1);
+  checkEq('非法餐次被拒绝', (await req('POST', '/api/meals', { name: 'x', mealType: '夜宵' })).status, 400);
+  checkEq('缺名称被拒绝', (await req('POST', '/api/meals', { calories: 100 })).status, 400);
+  checkEq('删除饮食记录', (await req('DELETE', `/api/meals/${m1.body.id}`)).status, 204);
+
+  // ---------- 运动 ----------
+  console.log('\n[运动]');
+  const w1 = await req('POST', '/api/workouts', { kind: '跑步', durationMin: 30, calories: 260, doneAt: todayStr });
+  checkEq('记一次运动状态码', w1.status, 201);
+  checkEq('运动类型', w1.body.kind, '跑步');
+  checkEq('时长', w1.body.durationMin, 30);
+
+  await req('POST', '/api/workouts', { kind: '力量', durationMin: 45, doneAt: dstr(-1) });
+
+  const wSum = await req('GET', '/api/workouts/summary');
+  checkEq('本周总时长', wSum.body.thisWeek.minutes, 75);
+  checkEq('今日时长', wSum.body.today.minutes, 30);
+  checkEq('连续天数至少 2', wSum.body.streakDays >= 2, true);
+
+  checkEq('按类型筛选', (await req('GET', '/api/workouts?kind=力量')).body.count, 1);
+  checkEq('时长必须为正', (await req('POST', '/api/workouts', { kind: '跑步', durationMin: 0 })).status, 400);
+  checkEq('非法类型被拒绝', (await req('POST', '/api/workouts', { kind: '爬山', durationMin: 30 })).status, 400);
+  checkEq('删除运动记录', (await req('DELETE', `/api/workouts/${w1.body.id}`)).status, 204);
+
   // ---------- summary ----------
   console.log('\n[首页汇总]');
   const summ = await req('GET', '/api/summary');
@@ -236,6 +333,11 @@ async function runTests() {
   checkEq('待办总数（3 建 1 删）', summ.body.todos.total, 2);
   checkEq('未完成数', summ.body.todos.open, 2);
   checkEq('本月支出字段存在', typeof summ.body.expenses.thisMonth, 'number');
+  checkEq('汇总含笔记数', summ.body.notes.total, 1);
+  checkEq('汇总含下一场考试', summ.body.exams.next.name, '中国历史导论 期末');
+  checkEq('汇总考试剩余天数', summ.body.exams.next.daysLeft, 5);
+  checkEq('汇总今日摄入（删掉 620 后剩 380）', summ.body.meals.todayCalories, 380);
+  checkEq('汇总本周运动（删掉 30 后剩 45）', summ.body.workouts.weekMinutes, 45);
 
   // ---------- 错误处理 ----------
   console.log('\n[错误处理]');

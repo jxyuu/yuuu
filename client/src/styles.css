@@ -148,6 +148,16 @@ a { color: var(--accent-deep); text-underline-offset: 3px; }
   text-align: center;
 }
 
+/* 分组小标题 */
+.nav-group-label {
+  padding: 16px 12px 6px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
 .sidebar-foot {
   margin-top: auto;
   padding: 18px 12px 0;
@@ -435,6 +445,38 @@ a { color: var(--accent-deep); text-underline-offset: 3px; }
   transition: width 0.4s ease;
 }
 .bar-amount { text-align: right; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* 近 7 天柱状图 */
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 122px;
+  padding-top: 6px;
+}
+.week-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+.week-fill {
+  width: 100%;
+  max-width: 30px;
+  border-radius: 9px 9px 4px 4px;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  transition: height 0.4s ease;
+}
+.week-value {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.week-label { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.02em; }
 
 /* ============================================================
    分栏 / 提示

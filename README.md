@@ -1,6 +1,6 @@
 # 个人生活助手
 
-一个本地运行的个人生活管理应用：**待办、记账、日程、日记**四合一。
+一个本地运行的个人生活管理应用：**待办、记账、日程、日记、笔记、考试、饮食、运动**八个模块。
 数据保存在你自己的电脑上（SQLite 单文件），不经过任何服务器。
 
 技术栈按 XTECH Project Lab 的建议：
@@ -18,7 +18,11 @@
 | **记账** | 金额/分类/备注/日期、分类占比条、本月与累计与今日汇总、按分类与日期区间筛选 |
 | **日程** | 增删改、起止时间、地点、备注、即将到来 / 全部切换 |
 | **日记** | 标题/正文/心情、全文搜索、按日期倒序、展开阅读 |
-| **总览** | 待办统计、今日与本月支出、今日日程数、日记状态、最近日程与最近日记 |
+| **笔记** | 标题/正文/标签、置顶、按标签筛选、标题正文标签全文搜索 |
+| **考试** | 名称/科目/时间/地点/座位、倒计时天数、待考与已考切换、出分后填成绩 |
+| **饮食** | 名称/餐次/热量/日期、今日摄入、近 7 天柱状图、餐次分布、按餐次筛选 |
+| **运动** | 类型/时长/消耗/备注/日期、本周与今日时长、连续打卡天数、近 7 天柱状图、类型分布 |
+| **总览** | 8 个关键数字 + 待办、日程、花销去向、最近日记 |
 
 界面风格：**简约、温馨、高级 ins 风** —— 暖米白纸感底色、低饱和奶咖与豆沙色、衬线标题、大留白、超柔阴影。
 
@@ -96,13 +100,20 @@ npm test
 │           ├── Todos.vue       待办
 │           ├── Expenses.vue    记账
 │           ├── Events.vue      日程
-│           └── Journal.vue     日记
+│           ├── Journal.vue     日记
+│           ├── Notes.vue       笔记
+│           ├── Exams.vue       考试
+│           ├── Meals.vue       饮食
+│           └── Workouts.vue    运动
 ├── server/                 后端（Express）
 │   ├── index.js            入口：装配、汇总接口、静态托管、错误处理
 │   ├── db.js               SQLite 连接 + 建表（node:sqlite）
 │   ├── validate.js         参数校验与错误类型
 │   └── routes/
 │       ├── todos.js  expenses.js  events.js  journal.js
+│       └── notes.js  exams.js  meals.js  workouts.js
+├── desktop/
+│   └── main.js             Electron 主进程（打包桌面版用）
 ├── public/                 前端构建产物（npm run build 生成，由 Express 托管）
 ├── tools/
 │   └── smoke-test.js       接口冒烟测试
@@ -123,6 +134,10 @@ npm test
 | `/#expenses` | 记账 |
 | `/#events` | 日程 |
 | `/#journal` | 日记 |
+| `/#notes` | 笔记 |
+| `/#exams` | 考试 |
+| `/#meals` | 饮食 |
+| `/#workouts` | 运动 |
 
 ---
 
@@ -208,6 +223,57 @@ curl -X POST http://127.0.0.1:3000/api/journal \
 
 字段：`title`（必填）、`content`、`mood`、`entryDate`（`YYYY-MM-DD`，默认今天）。
 
+### 笔记
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/notes` | 列表，支持 `?q=`、`?tag=`、`?pinned=1` |
+| POST | `/api/notes` | 新建 |
+| GET | `/api/notes/:id` | 单条 |
+| PATCH | `/api/notes/:id` | 部分更新（可只传 `pinned` 置顶） |
+| DELETE | `/api/notes/:id` | 删除 |
+
+字段：`title`（必填）、`content`、`tags`（数组或逗号分隔串）、`pinned`（布尔）。
+标签对外返回数组，存储时用逗号串。
+
+### 考试
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/exams` | 列表，支持 `?upcoming=1`、`?status=planned\|done`、`?from=`、`?to=` |
+| POST | `/api/exams` | 新建 |
+| GET | `/api/exams/:id` | 单条 |
+| PATCH | `/api/exams/:id` | 部分更新（可填 `score`、改 `status`） |
+| DELETE | `/api/exams/:id` | 删除 |
+
+字段：`name`（必填）、`subject`、`examAt`（必填，`YYYY-MM-DD` 或 ISO 8601）、
+`location`、`seat`、`score`、`status`（`planned` / `done`）。
+返回里带 `daysLeft`（距今天数，负数表示已过期）。
+
+### 饮食
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/meals` | 列表，支持 `?from=`、`?to=`、`?type=` |
+| GET | `/api/meals/summary` | 今日摄入、累计、按餐次、近 7 天 |
+| POST | `/api/meals` | 记一顿 |
+| DELETE | `/api/meals/:id` | 删除 |
+
+字段：`name`（必填）、`mealType`（`早餐`/`午餐`/`晚餐`/`加餐`，默认午餐）、
+`calories`（可填 0）、`note`、`eatenAt`（`YYYY-MM-DD`，默认今天）。
+
+### 运动
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/workouts` | 列表，支持 `?from=`、`?to=`、`?kind=` |
+| GET | `/api/workouts/summary` | 今日/本周时长、连续打卡天数、按类型、近 7 天 |
+| POST | `/api/workouts` | 记一次 |
+| DELETE | `/api/workouts/:id` | 删除 |
+
+字段：`kind`（`跑步`/`力量`/`球类`/`游泳`/`骑行`/`拉伸`/`其他`）、
+`durationMin`（必填，1–1440）、`calories`、`note`、`doneAt`（`YYYY-MM-DD`，默认今天）。
+
 ### 错误响应
 
 校验失败返回 `400`，并指出出错字段：
@@ -266,10 +332,13 @@ const { DatabaseSync } = require('node:sqlite');
 
 ## 下一步
 
-- [ ] **Electron 套壳**：打包成桌面应用
+- [ ] **Electron 打包**：主进程 `desktop/main.js` 已写好并能启动，
+      打包脚本与安装包尚未完成
 - [ ] 数据导出 / 导入（JSON 或 CSV）
 - [ ] 记账的月度趋势图
 - [ ] 日记的日历视图
+- [ ] 饮食：常用食物快速录入
+- [ ] 运动：周目标与达成率
 - [ ] 深色模式
 
 ---

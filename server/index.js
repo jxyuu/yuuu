@@ -76,6 +76,39 @@ app.get('/api/summary', (_req, res) => {
     .prepare('SELECT COUNT(*) AS c FROM journal WHERE entry_date = ?')
     .get(t);
 
+  // ---- 扩展模块 ----
+  const notesCount = db.prepare('SELECT COUNT(*) AS c FROM notes').get();
+
+  const nextExamRow = db
+    .prepare('SELECT * FROM exams WHERE substr(exam_at, 1, 10) >= ? ORDER BY exam_at ASC LIMIT 1')
+    .get(t);
+  let nextExam = null;
+  if (nextExamRow) {
+    const day = String(nextExamRow.exam_at).slice(0, 10);
+    nextExam = {
+      id: nextExamRow.id,
+      name: nextExamRow.name,
+      subject: nextExamRow.subject,
+      examAt: nextExamRow.exam_at,
+      daysLeft: Math.round((new Date(day + 'T00:00:00Z') - new Date(t + 'T00:00:00Z')) / 86400000),
+    };
+  }
+
+  const mealsToday = db
+    .prepare('SELECT COALESCE(SUM(calories), 0) AS kcal, COUNT(*) AS c FROM meals WHERE eaten_at = ?')
+    .get(t);
+
+  const monday = (() => {
+    const d = new Date();
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  })();
+  const workoutsWeek = db
+    .prepare('SELECT COALESCE(SUM(duration_min), 0) AS min, COUNT(*) AS c FROM workouts WHERE done_at >= ?')
+    .get(monday);
+
   res.json({
     today: t,
     todos: {
@@ -93,6 +126,10 @@ app.get('/api/summary', (_req, res) => {
       total: Number(journalCount.c),
       writtenToday: Number(journalToday.c) > 0,
     },
+    notes: { total: Number(notesCount.c) },
+    exams: { next: nextExam },
+    meals: { todayCalories: Number(mealsToday.kcal), todayCount: Number(mealsToday.c) },
+    workouts: { weekMinutes: Number(workoutsWeek.min), weekCount: Number(workoutsWeek.c) },
   });
 });
 
@@ -103,6 +140,10 @@ app.use('/api/todos', require('./routes/todos'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/journal', require('./routes/journal'));
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/exams', require('./routes/exams'));
+app.use('/api/meals', require('./routes/meals'));
+app.use('/api/workouts', require('./routes/workouts'));
 
 // 前端静态资源（Vue 构建产物以后放这里）
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -144,6 +185,10 @@ const server = app.listen(PORT, HOST, () => {
   console.log('    GET             /api/expenses/summary');
   console.log('    GET/POST        /api/events       PATCH/DELETE /api/events/:id');
   console.log('    GET/POST        /api/journal      PATCH/DELETE /api/journal/:id');
+  console.log('    GET/POST        /api/notes        PATCH/DELETE /api/notes/:id');
+  console.log('    GET/POST        /api/exams        PATCH/DELETE /api/exams/:id');
+  console.log('    GET/POST        /api/meals        GET /api/meals/summary   DELETE /api/meals/:id');
+  console.log('    GET/POST        /api/workouts     GET /api/workouts/summary DELETE /api/workouts/:id');
   console.log('');
 });
 
